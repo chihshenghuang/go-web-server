@@ -11,6 +11,11 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type ValidationError struct {
+	Field string `json:"field"`
+	Message string `json:"message"`
+}
+
 // albums slice to seed record album data.
 var albums = []model.Album{
 	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
@@ -44,15 +49,15 @@ func getAlbumById(ctx *gin.Context) {
 }
 
 // build error message from validation error
-func getValidationError(verr validator.ValidationErrors) map[string]string {
-	errs := make(map[string]string)
+func getValidationError(verr validator.ValidationErrors) []ValidationError{
+	errs := []ValidationError{}
 
 	for _, f := range verr {
 		err := f.ActualTag()
 		if f.Param() != "" {
 			err = fmt.Sprintf("%s=%s", err, f.Param())
 		}
-		errs[f.Field()] = fmt.Sprintf("Missing %s, %s is %s!", f.StructField(), f.StructField(), err)
+		errs = append(errs, ValidationError{Field: f.Field(), Message: fmt.Sprintf("Missing %s, %s is %s!", f.Field(), f.Field(), err) })
 	}
 
 	return errs
