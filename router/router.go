@@ -73,6 +73,7 @@ func GetPayloads(ctx *gin.Context) {
 	ctx.YAML(http.StatusOK, results)
 }
 
+// get filtered payloads by query string
 func getFilterPayloads(queryMap map[string][]string) []model.Payload {
 	results := Payloads
 
@@ -104,6 +105,7 @@ func getFilterPayloads(queryMap map[string][]string) []model.Payload {
 	return results
 }
 
+// parse query string and return the valid query parameter map
 func getValidQueryParamsMap(ctx *gin.Context) map[string][]string{	
 	// get all query params from request
 	queryMap := ctx.Request.URL.Query()
@@ -141,6 +143,7 @@ func getValidationError(verr validator.ValidationErrors) []ValidationError{
 	return errs
 }
 
+// build error message by error tag
 func validationErrorToText(err validator.FieldError) string {
 	switch err.ActualTag() {
 	case "required":
@@ -165,7 +168,7 @@ func PostPayloads(ctx *gin.Context) {
 		}
 		
 		// Not a YAML format validation error
-		ctx.JSON(http.StatusBadRequest, gin.H{"errors": err.Error()})
+		ctx.YAML(http.StatusBadRequest, gin.H{"errors": err.Error()})
 		return
 	}
 	

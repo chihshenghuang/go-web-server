@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"example/web-service-gin/model"
 	"example/web-service-gin/router"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -93,35 +95,32 @@ func TestGetPayloadsQueryVersionLicense(t *testing.T) {
 }
 
 // test post payloads endpoint
-// func TestPostPayloads(t *testing.T) {
-// 	// read newPost yaml file
-// 	newPostYaml, err := ioutil.ReadFile("./test/newPost.yaml")
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	var newPost model.Payload
-// 	err = yaml.Unmarshal(newPostYaml, &newPost)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+func TestPostPayloads(t *testing.T) {
+	// read newPost yaml file
+	newPostYaml, err := ioutil.ReadFile("./test/newPost.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var newPost model.Payload
+	err = yaml.Unmarshal(newPostYaml, &newPost)
+	if err != nil {
+		t.Fatal(err)
+	}
 	
-// 	newPostStr := fmt.Sprintf("%v", newPost)
+	w :=  httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/v1/payloads", bytes.NewBuffer(newPostYaml))
+	req.Header.Add("Content-Type", "application/x-yaml;charset=utf-8")
+	testRouter.ServeHTTP(w, req)
 
-// 	w :=  httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/v1/payloads", bytes.NewBufferString(newPostStr))
-// 	req.Header.Add("Content-Type", "application/x-yaml;charset=utf-8")
-// 	router.ServeHTTP(w, req)
+	// test status code
+	assert.Equal(t, http.StatusCreated, w.Code)
 
-// 	// test status code
-// 	assert.Equal(t, http.StatusCreated, w.Code)
+	// test content
+	var got model.Payload
+	err = yaml.Unmarshal(w.Body.Bytes(), &got)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-// 	// test content
-// 	var got gin.H
-// 	err = yaml.Unmarshal(w.Body.Bytes(), &got)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-
-// 	assert.Equal(t, newPost, got)
-// }
-
+	assert.Equal(t, newPost, got)
+}
