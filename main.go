@@ -38,12 +38,12 @@ var payloads = []model.Payload{
 		Source: "https://github.com/random/repo",
 		License: "Apache-2.0",
 		Description: `|
-		### Interesting Title
-		Some application content, and description`,
+		### Interesting
+		Title Some application content, and description`,
 	},
-  {
+	{
 		Title: "Valid App 2", 
-		Version: "1.0.1", 
+		Version: "0.0.1", 
 		Maintainers: []model.Maintainers{
 			{
 				Name: "AppTwo Maintainer", 
@@ -55,14 +55,14 @@ var payloads = []model.Payload{
 		Source: "https://github.com/upbound/repo",
 		License: "Apache-2.0",
 		Description: `|
-		### Why app 2 is the best 
+		### Why app 2 is the best
 		Because it simply is...`,
 	},
 }
 
 // getHealthStatus responds status 200 to show server is alive
 func getHealthStatus(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, "Service is healthy!")
+	ctx.YAML(http.StatusOK, gin.H{"data": "Service is healthy!"})
 }
 
 // getPayloads responds with the list of all payloads as JSON.
@@ -160,7 +160,7 @@ func postPayloads(ctx *gin.Context) {
 	if err := ctx.ShouldBindYAML(&newPayload); err != nil {
 		var verr validator.ValidationErrors
 		if errors.As(err, &verr) {
-			ctx.IndentedJSON(http.StatusBadRequest, gin.H{"errors": getValidationError(verr)})
+			ctx.YAML(http.StatusBadRequest, gin.H{"errors": getValidationError(verr)})
 		  return
 		}
 		
@@ -168,7 +168,7 @@ func postPayloads(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"errors": err.Error()})
 		return
 	}
-
+	
 	// Add the new payload to the slice.
 	payloads = append(payloads, newPayload)
 	ctx.YAML(http.StatusCreated, newPayload)
