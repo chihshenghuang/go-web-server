@@ -1,9 +1,8 @@
-package main
+package router
 
 import (
 	"bytes"
 	"example/web-service-gin/model"
-	"example/web-service-gin/router"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +17,7 @@ var testRouter *gin.Engine
 
 func init() {
 	gin.SetMode(gin.TestMode)
-	testRouter = router.SetupRouter()
+	testRouter = SetupRouter()
 }
 
 // test get health status api
@@ -55,7 +54,7 @@ func TestGetPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, router.Payloads, got)
+	assert.Equal(t, Payloads, got)
 }
 
 // test get payloads endpoint with title query string
@@ -73,7 +72,7 @@ func TestGetPayloadsQueryTitle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, router.Payloads[0:1], got)
+	assert.Equal(t, Payloads[0:1], got)
 }
 
 // test get payloads endpoint with version and license query string
@@ -91,13 +90,13 @@ func TestGetPayloadsQueryVersionLicense(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, router.Payloads[1:2], got)
+	assert.Equal(t, Payloads[1:2], got)
 }
 
 // test post payloads endpoint
 func TestPostPayloads(t *testing.T) {
 	// read newPost yaml file
-	newPostYaml, err := ioutil.ReadFile("./test/newPost.yaml")
+	newPostYaml, err := ioutil.ReadFile("../testdata/newPost.yaml")
 	if err != nil {
 		t.Fatal(err)
 	}
