@@ -33,6 +33,21 @@ go test ./...
 go mod tidy
 ```
 
+## Quick Start
+
+From the project root, run:
+
+```
+go run server.go
+```
+
+API endpoints:
+
+- Get health status: http://localhost:8080/v1/health
+- Get all payloads: http://localhost:8080/v1/payloads
+- Get payloads with query string: http://localhost:8080/v1/payloads?license=Apache-2.0
+- Post new payload : http://localhost:8080/v1/payloads
+
 ## Testing
 
 From the project root, run:
