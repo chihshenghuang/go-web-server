@@ -56,8 +56,8 @@ var Payloads = []model.Payload{
 }
 
 type ValidationError struct {
-	Field string `json:"field"`
-	Message string `json:"message"`
+	Field string `yaml:"field"`
+	Message string `yaml:"message"`
 }
 
 // getHealthStatus responds status 200 to show server is alive
@@ -65,7 +65,7 @@ func GetHealthStatus(ctx *gin.Context) {
 	ctx.YAML(http.StatusOK, gin.H{"data": "Service is healthy!"})
 }
 
-// getPayloads responds with the list of all payloads as JSON.
+// getPayloads responds with the list of all payloads as YAML.
 func GetPayloads(ctx *gin.Context) {
 	queryMap := getValidQueryParamsMap(ctx)
 	results := getFilterPayloads(queryMap)
@@ -154,7 +154,7 @@ func validationErrorToText(err validator.FieldError) string {
 	return fmt.Sprintf("%s is no valid", err.Field())
 }
 
-// postPayloads adds a payload from JSON received in the request body.
+// postPayloads adds a payload from YAML received in the request body.
 func PostPayloads(ctx *gin.Context) {
 	var newPayload model.Payload
 
