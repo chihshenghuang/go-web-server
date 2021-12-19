@@ -12,15 +12,15 @@ func LoggerHandler() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		t := time.Now()
 
-		// before request
-
+		// TODO: use tools like Azure Application Insight to log the user request information
+		// for each request in log middleware 
 		ctx.Next()
 
-		// after request
+		// log the latency
 		latency := time.Since(t)
 		log.Print(latency)
 
-		// access the status we are sending
+		// log the status
 		status := ctx.Writer.Status()
 		log.Println(status)
 	}

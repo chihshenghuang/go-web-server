@@ -6,6 +6,8 @@ import (
 	"example/web-service-gin/model"
 	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -16,74 +18,160 @@ type ValidationError struct {
 	Message string `json:"message"`
 }
 
-// albums slice to seed record album data.
-var albums = []model.Album{
-	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
+// In memory cache for payloads data
+var payloads = []model.Payload{
+	{
+		Title: "Valid App 1", 
+		Version: "1.0.1", 
+		Maintainers: []model.Maintainers{
+			{
+				Name: "firstmaintainer app1", 
+				Email: "firstmaintainer@hotmail.com",
+		  }, 
+			{
+				Name: "secondmaintainer app1", 
+				Email: "secondmaintainer@gmail.com",
+			},
+		},
+		Company: "Random Inc.",
+		Website: "https://website.com",
+		Source: "https://github.com/random/repo",
+		License: "Apache-2.0",
+		Description: `|
+		### Interesting Title
+		Some application content, and description`,
+	},
+  {
+		Title: "Valid App 2", 
+		Version: "1.0.1", 
+		Maintainers: []model.Maintainers{
+			{
+				Name: "AppTwo Maintainer", 
+				Email: "apptwo@hotmail.com",
+		  }, 
+		},
+		Company: "Upbound Inc.",
+		Website: "https://upbound.io",
+		Source: "https://github.com/upbound/repo",
+		License: "Apache-2.0",
+		Description: `|
+		### Why app 2 is the best 
+		Because it simply is...`,
+	},
 }
 
 // getHealthStatus responds status 200 to show server is alive
 func getHealthStatus(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, "Success")
+	ctx.JSON(http.StatusOK, "Service is healthy!")
 }
 
-// getAlbums responds with the list of all albums as JSON.
-func getAlbums(ctx *gin.Context) {
-	ctx.IndentedJSON(http.StatusOK, albums)
+// getPayloads responds with the list of all payloads as JSON.
+func getPayloads(ctx *gin.Context) {
+	queryMap := getValidQueryParamsMap(ctx)
+	results := getFilterPayloads(queryMap)
+
+	ctx.YAML(http.StatusOK, results)
 }
 
-// getAlbumbyID locates the album whose ID value matches the id
-// parameter sent by the client, then returns that album as a response.
-func getAlbumById(ctx *gin.Context) {
-	id := ctx.Param("id")
+func getFilterPayloads(queryMap map[string][]string) []model.Payload {
+	results := payloads
 
-	// Loop over the list of albums, looking for
-	// an album whose ID value matches the parameter
-	for _, a := range albums {
-		if a.ID == id {
-			ctx.IndentedJSON(http.StatusOK, a)
-			return
+	// check each query key from query map 
+	for queryKey, queryValueList := range queryMap {
+		temp := []model.Payload{}
+		// check each query value by query key
+		for qvIdx := 0; qvIdx < len(queryValueList); qvIdx++ {
+			// loop all payload data stored in memory
+			for rIdx := 0; rIdx < len(results); rIdx++ {
+				result := results[rIdx]
+				
+				// loop all struct field for each payload
+				val := reflect.ValueOf(&result).Elem()
+				for idx := 0; idx < val.NumField(); idx++ {
+					// get field from struct
+					field :=  strings.ToLower(val.Type().Field(idx).Name)
+					if queryKey == field {
+						fieldVal := val.Field(idx).Interface()
+						if queryValueList[qvIdx] == fieldVal {
+							temp = append(temp, result)
+						}
+					}
+				}
+			} 
+		}
+		results = temp
+	}
+	return results
+}
+
+func getValidQueryParamsMap(ctx *gin.Context) map[string][]string{	
+	// get all query params from request
+	queryMap := ctx.Request.URL.Query()
+
+	validQueryMap := make(map[string][]string)
+	
+	payload := model.Payload{}
+	val := reflect.ValueOf(&payload).Elem()
+
+	// loop all property in payload struct to get valid query params
+	for i := 0; i < val.NumField(); i++ {
+		// get field from struct
+		field :=  strings.ToLower(val.Type().Field(i).Name)
+
+		if res, ok := queryMap[field]; ok {
+			validQueryMap[field] = res
 		}
 	}
+
+	return validQueryMap
 }
 
 // build error message from validation error
 func getValidationError(verr validator.ValidationErrors) []ValidationError{
 	errs := []ValidationError{}
 
-	for _, f := range verr {
-		err := f.ActualTag()
-		if f.Param() != "" {
-			err = fmt.Sprintf("%s=%s", err, f.Param())
+	for _, ferr := range verr {
+		err := ferr.ActualTag()
+		if ferr.Param() != "" {
+			err = fmt.Sprintf("%s=%s", err, ferr.Param())
 		}
-		errs = append(errs, ValidationError{Field: f.Field(), Message: fmt.Sprintf("Missing %s, %s is %s!", f.Field(), f.Field(), err) })
+		errs = append(errs, ValidationError{Field: ferr.Field(), Message:  validationErrorToText(ferr)})
 	}
 
 	return errs
 }
 
-// postAlbums adds an album from JSON received in the request body.
-func postAlbums(ctx *gin.Context) {
-	var newAlbum model.Album
+func validationErrorToText(err validator.FieldError) string {
+	switch err.ActualTag() {
+	case "required":
+		return fmt.Sprintf("Missing %s, %s is required", err.Field(), err.Field())
+	case "email":
+		return fmt.Sprintf("Invalid email format: %s", err.Value())
+	}
+	return fmt.Sprintf("%s is no valid", err.Field())
+}
 
-	// Call ShouldBindJSON to bind the received JSON to
-	// new Albums.
-	if err := ctx.ShouldBindJSON(&newAlbum); err != nil {
+// postPayloads adds a payload from JSON received in the request body.
+func postPayloads(ctx *gin.Context) {
+	var newPayload model.Payload
+
+	// Call ShouldBindYAML to bind the received YAML to
+	// new payload.
+	if err := ctx.ShouldBindYAML(&newPayload); err != nil {
 		var verr validator.ValidationErrors
 		if errors.As(err, &verr) {
 			ctx.IndentedJSON(http.StatusBadRequest, gin.H{"errors": getValidationError(verr)})
 		  return
 		}
-
-		// Not a validation error
+		
+		// Not a YAML format validation error
 		ctx.JSON(http.StatusBadRequest, gin.H{"errors": err.Error()})
 		return
 	}
 
-	// Add the new album to the slice.
-	albums = append(albums, newAlbum)
-	ctx.IndentedJSON(http.StatusCreated, newAlbum)
+	// Add the new payload to the slice.
+	payloads = append(payloads, newPayload)
+	ctx.YAML(http.StatusCreated, newPayload)
 }
 
 func setupRouter() *gin.Engine {
@@ -98,13 +186,15 @@ func setupRouter() *gin.Engine {
 	// add authorization validation middleware
 	router.Use(middleware.AuthorizationHandler())
 
+	// add rate limiter middleware
+	router.Use(middleware.RateLimiterHandler())
+
 	// api version 1
 	v1 := router.Group("/v1")
 	{
 		v1.GET(("/health"), getHealthStatus)
-		v1.GET("/albums", getAlbums)
-		v1.GET("/album/:id", getAlbumById)
-		v1.POST("/albums", postAlbums)
+		v1.GET("/payloads", getPayloads)
+		v1.POST("/payloads", postPayloads)
 	}
 
 	// api version 2
