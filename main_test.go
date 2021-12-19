@@ -2,6 +2,7 @@ package main
 
 import (
 	"example/web-service-gin/model"
+	"example/web-service-gin/router"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,18 +12,18 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var router *gin.Engine
+var testRouter *gin.Engine
 
 func init() {
 	gin.SetMode(gin.TestMode)
-	router = setupRouter()
+	testRouter = router.SetupRouter()
 }
 
 // test get health status api
 func TestHealthRoute(t *testing.T) {
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/v1/health", nil)
-	router.ServeHTTP(w, req)
+	testRouter.ServeHTTP(w, req)
 	
 	// test status code
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -40,7 +41,7 @@ func TestHealthRoute(t *testing.T) {
 func TestGetPayloads(t *testing.T) {
 	w :=  httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/v1/payloads", nil)
-	router.ServeHTTP(w, req)
+	testRouter.ServeHTTP(w, req)
 
 	// test status code
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -52,14 +53,14 @@ func TestGetPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, payloads, got)
+	assert.Equal(t, router.Payloads, got)
 }
 
 // test get payloads endpoint with title query string
 func TestGetPayloadsQueryTitle(t *testing.T) {
 	w :=  httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/v1/payloads?title=Valid App 1", nil)
-	router.ServeHTTP(w, req)
+	testRouter.ServeHTTP(w, req)
 
 	// test status code
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -70,14 +71,14 @@ func TestGetPayloadsQueryTitle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, payloads[0:1], got)
+	assert.Equal(t, router.Payloads[0:1], got)
 }
 
 // test get payloads endpoint with version and license query string
 func TestGetPayloadsQueryVersionLicense(t *testing.T) {
 	w :=  httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/v1/payloads?version=0.0.1&license=Apache-2.0", nil)
-	router.ServeHTTP(w, req)
+	testRouter.ServeHTTP(w, req)
 
 	// test status code
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -88,9 +89,8 @@ func TestGetPayloadsQueryVersionLicense(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, payloads[1:], got)
+	assert.Equal(t, router.Payloads[1:2], got)
 }
-
 
 // test post payloads endpoint
 // func TestPostPayloads(t *testing.T) {
